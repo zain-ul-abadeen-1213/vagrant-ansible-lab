@@ -1,0 +1,60 @@
+---
+- name: Common setup for all servers
+  hosts: all
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install common packages
+      apt:
+        name:
+          - curl
+          - vim
+          - git
+          - htop
+        state: present
+
+    - name: Create deploy user
+      user:
+        name: deploy
+        shell: /bin/bash
+        create_home: true
+
+- name: Web server setup
+  hosts: webservers
+  become: true
+  tasks:
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Deploy branded index page
+      copy:
+        dest: /var/www/html/index.html
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <head><title>Zain Tech Automation Solutions</title></head>
+          <body>
+            <h1>Zain Tech Automation Solutions</h1>
+            <p>Automate. Accelerate. Achieve.</p>
+            <p>Server: {{ inventory_hostname }} - configured by Ansible</p>
+          </body>
+          </html>
+      notify: Restart nginx
+
+    - name: Ensure nginx is running and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Restart nginx
+      service:
+        name: nginx
+        state: restarted
